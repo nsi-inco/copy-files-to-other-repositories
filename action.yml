@@ -1,11 +1,11 @@
-name: Copy Files to Other Repositories
+name: Copy Files to Team Repositories
 description: This action enables you to copy/replicate from one repo to another automatically.
 inputs:
   github_token:
     description: >
       Token to use GitHub API. It must have "repo" and "workflow" scopes so it can push to repo and edit workflows.
       It cannot be the default GitHub Actions token GITHUB_TOKEN. GitHub Action token's permissions are limited to the repository that contains your workflows.
-      Provide token of the user that has rights to push to the repos that this action is suppose to update. 
+      Provide token of the user that has rights to push to the repos that this action is suppose to update.
     required: true
   committer_username:
     description: >
@@ -21,7 +21,7 @@ inputs:
     required: false
   commit_message:
     description: >
-      It is used as a commit message when pushing changes with global workflows. 
+      It is used as a commit message when pushing changes with global workflows.
       It is also used as a title of the pull request that is created by this action.
     default: Update global workflows
     required: false
@@ -35,7 +35,7 @@ inputs:
     description: >
       Comma-separated list of file paths or directories that should be handled by this action and updated in other repositories.
       In the format `.github/workflows`.
-    required: true  
+    required: true
   repos_to_ignore:
     description: >
       Comma-separated list of repositories that should not get updates from this action.
@@ -44,8 +44,8 @@ inputs:
     required: false
   topics_to_include:
     description: >
-      Comma-separated list of topics that should get updates from this action. 
-      Repos that do not contain one of the specified topics will get appended to the repos_to_ignore list. 
+      Comma-separated list of topics that should get updates from this action.
+      Repos that do not contain one of the specified topics will get appended to the repos_to_ignore list.
       In the format topic1,topic2.
     required: false
   exclude_private:
@@ -67,6 +67,10 @@ inputs:
   destination:
     description: >
       Name of the directory where all files matching "patterns_to_include" will be copied. In the format `.github/workflows`.
+    required: false
+  team:
+    description: >
+      Team inside organisation to run againstu
     required: false
 runs:
   using: node12
