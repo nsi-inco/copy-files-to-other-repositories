@@ -1967,7 +1967,11 @@ async function getBranchesRemote(octokit, owner, repo) {
   core.debug('DEBUG: Full response about branches');
   core.debug(JSON.stringify(allBranches, null, 2));
 
+<<<<<<< HEAD
   const branchesList = allBranches.map((branch) => {
+=======
+  const branchesList = response.data.map((branch) => {
+>>>>>>> 28a3eb7 (add team logic)
     return {
       name: branch.name,
     };
@@ -2006,7 +2010,7 @@ async function getRepo(octokit, owner, repo) {
   return repoDetails;
 }
 
-async function getReposList(octokit, owner) {
+async function getReposList(octokit, owner, team) {
   let isUser;
   let response;
 
@@ -2028,10 +2032,10 @@ async function getReposList(octokit, owner) {
         });
         isUser = true;
       } catch (error) {
-        throw new Error(`Invalid user/org: ${  error}`);
+        throw new Error(`Invalid user/org: ${error}`);
       }
     } else {
-      throw new Error(`Failed checking if workflow runs for org or user: ${  error}`);
+      throw new Error(`Failed checking if workflow runs for org or user: ${error}`);
     }
   }
 
@@ -2044,13 +2048,21 @@ async function getReposList(octokit, owner) {
       per_page: 100
     });
   } else {
-    response = await octokit.paginate(octokit.repos.listForOrg, {
+    response = await octokit.paginate(octokit.teams.listReposInOrg, {
       org: owner,
+      team_slug: team,
       per_page: 100
     });
   }
+<<<<<<< HEAD
 
   const reposList = response.map((repo) => {
+=======
+  core.debug("here")
+
+  const reposList = response.map((repo) => {
+    core.info(repo.name)
+>>>>>>> 28a3eb7 (add team logic)
     return {
       name: repo.name,
       url: repo.html_url,
@@ -2109,7 +2121,7 @@ async function createPr(octokit, branchName, id, commitMessage, defaultBranch) {
       //if error is different than rate limit/timeout related we should throw error as it is very probable that
       //next PR will also fail anyway, we should let user know early in the process by failing the action
       if (error.message !== 'was submitted too quickly') {
-        throw new Error(`Unable to create a PR: ${  error}`);
+        throw new Error(`Unable to create a PR: ${error}`);
       }
     }
   }
@@ -14296,14 +14308,14 @@ async function run() {
   if (isWorkflowDispatch) core.info('Workflow started on workflow_dispatch event');
 
   if (!isPush && !isWorkflowDispatch) return core.setFailed('This GitHub Action works only when triggered by "push" or "workflow_dispatch" webhooks.');
-  
+
   core.debug('DEBUG: full payload of the event that triggered the action:');
   core.debug(JSON.stringify(eventPayload, null, 2));
 
   try {
     /*
      * 0. Setting up necessary variables and getting input specified by workflow user
-    */ 
+    */
     const gitHubKey = process.env.GITHUB_TOKEN || core.getInput('github_token', { required: true });
     const patternsToIgnore = core.getInput('patterns_to_ignore');
     const patternsToInclude = core.getInput('patterns_to_include');
@@ -14313,7 +14325,11 @@ async function run() {
     const commitMessage = core.getInput('commit_message');
     const branches = core.getInput('branches');
     const destination = core.getInput('destination');
+<<<<<<< HEAD
     const customBranchName = core.getInput('bot_branch_name');
+=======
+    const team = core.getInput('team');
+>>>>>>> 28a3eb7 (add team logic)
     const repoNameManual = eventPayload.inputs && eventPayload.inputs.repo_name;
 
     const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
@@ -14328,8 +14344,17 @@ async function run() {
     //TODO for now this action is hardcoded to always get commit id of the first commit on the list
     const commitId = triggerEventName === 'push' ? eventPayload.commits[0].id : '';
 
+<<<<<<< HEAD
     if (patternsToRemove && patternsToInclude) {
       core.setFailed('Fields patterns_to_include and patterns_to_remove are mutually exclusive. If you want to remove files from repos then do not use patterns_to_include.');
+=======
+    /*
+     * 1. Getting list of files that must be replicated in other repos by this action
+     */
+    const filesToReplicate = await getListOfFilesToReplicate(myOctokit, commitId, owner, repo, patternsToIgnore, patternsToInclude, triggerEventName);
+    //if no files need replication, we just need to stop the workflow from further execution
+    if (!filesToReplicate.length)
+>>>>>>> 28a3eb7 (add team logic)
       return;
     }
 
@@ -14355,14 +14380,14 @@ async function run() {
     //filesThatNeedToBeRemoved
 
     /*
-     * 2. Getting list of all repos owned by the owner/org 
+     * 2. Getting list of all repos owned by the owner/org
      *    or just replicating to the one provided manually
      */
     let reposList = [];
     if (isWorkflowDispatch && repoNameManual) {
       reposList.push(await getRepo(myOctokit, owner, repoNameManual));
     } else {
-      reposList = await getReposList(myOctokit, owner);
+      reposList = await getReposList(myOctokit, owner, team);
     }
 
     /*
@@ -14381,32 +14406,43 @@ async function run() {
     for (const repo of reposList) {
       try {
         //start only if repo not on list of ignored
-        if (!ignoredRepositories.includes(repo.name)) {        
+        if (!ignoredRepositories.includes(repo.name)) {
           core.startGroup(`Started updating ${repo.name} repo`);
           const defaultBranch = repo.defaultBranch;
 
           /*
            * 4a. Creating folder where repo will be cloned and initializing git client
            */
+<<<<<<< HEAD
           const dir = path.join(process.cwd(), './clones', `${repo.name  }-${ Math.random().toString(36).substring(7)}`);
           await mkdir(dir, {recursive: true});
           const git = simpleGit({baseDir: dir});
+=======
+          const dir = path.join(process.cwd(), './clones', repo.name);
+          await mkdir(dir, { recursive: true });
+          const git = simpleGit({ baseDir: dir });
+>>>>>>> 28a3eb7 (add team logic)
 
           /*
            * 4b. Cloning and verification of the repo before replication
            */
-          await clone(gitHubKey, repo.url, dir, git); 
+          await clone(gitHubKey, repo.url, dir, git);
           if (!isInitialized(await getBranchesLocal(git), defaultBranch)) {
             core.info('Repo not initialized, skipping it.');
             continue;
           }
 
           /*
-           * 4c. Checking what branches should this action operate on. 
+           * 4c. Checking what branches should this action operate on.
            *     Should it be just default one or the ones provided by the user
            */
+<<<<<<< HEAD
           const branchesToOperateOn = await getBranchesList(myOctokit, owner, repo.name, branches, defaultBranch); 
           if (!branchesToOperateOn[0].length) {
+=======
+          const branchesToOperateOn = await getBranchesList(myOctokit, owner, repo.name, branches, defaultBranch);
+          if (!branchesToOperateOn.length) {
+>>>>>>> 28a3eb7 (add team logic)
             core.info('Repo has no branches that the action could operate on');
             continue;
           }
@@ -14424,6 +14460,7 @@ async function run() {
             /*
              * 4db. Creating new branch in cloned repo
              */
+<<<<<<< HEAD
             const newBranchName = customBranchName || getBranchName(commitId, branchName);
             const wasBranchThereAlready = branchesToOperateOn[1].some(branch => branch.name === newBranchName);
             core.debug(`DEBUG: was branch ${newBranchName} there already in the repository? - ${wasBranchThereAlready}`);
@@ -14443,14 +14480,25 @@ async function run() {
             if (filesToRemove) await removeFiles(filesToRemove, dir, { destination });
             if (!filesToReplicate) await removeFiles(patternsToRemove, dir, { patternsToIgnore });
                   
+=======
+            // const newBranchName = getBranchName(commitId, branchName);
+            // await createBranch(newBranchName, git);
+
+            /*
+             * 4dc. Replicating files
+             */
+            await copyChangedFiles(filesToReplicate, dir, destination);
+
+>>>>>>> 28a3eb7 (add team logic)
             //pushing and creating PR only if there are changes detected locally
             if (await areFilesChanged(git)) {
               /*
                * 4ed. Pushing files to custom branch
-               */  
-              await push(newBranchName, commitMessage, committerUsername, committerEmail, git);
-                    
+               */
+              await push(branchName, commitMessage, committerUsername, committerEmail, git);
+
               /*
+<<<<<<< HEAD
                * 4fe. Opening a PR. Doing in try/catch as it is not always failing because of timeouts, maybe branch already has a PR
                * we need to try to create a PR cause there can be branch but someone closed PR, so branch is there but PR not
                */
@@ -14471,9 +14519,22 @@ async function run() {
               } else {
                 core.info(`Unable to create a PR because of timeouts. Create PR manually from the branch ${newBranchName} that was already created in the upstream`);
               }
+=======
+               * 4fe. Opening a PR
+               */
+              // const pullRequestUrl = await createPr(myOctokit, newBranchName, repo.id, commitMessage, branchName);
+
+              core.endGroup();
+
+              // if (pullRequestUrl) {
+              //   core.info(`Workflow finished with success and PR for ${repo.name} is created -> ${pullRequestUrl}`);
+              // } else {
+              //   core.info(`Unable to create a PR because of timeouts. Create PR manually from the branch ${newBranchName} that was already created in the upstream`);
+              // }
+>>>>>>> 28a3eb7 (add team logic)
             } else {
               core.endGroup();
-              core.info('Finished with success. No PR was created as no changes were detected');
+              core.info('Finished with success. No commit was created as no changes were detected');
             }
           }
         }
@@ -15592,8 +15653,13 @@ module.exports = { copyChangedFiles, parseCommaList, getListOfReposToIgnore, get
  * @param  {String} patternsToIgnore comma-separated list of file paths or directories that should be ignored
  * @param  {String} patternsToInclude comma-separated list of file paths or directories that should be replicated
  * @param  {String} triggerEventName name of the event that triggered the workflow
+<<<<<<< HEAD
  * 
  * @returns {Object<Array<String>>} list of filepaths of modified files
+=======
+ *
+ * @returns {Array<String>} list of filepaths of modified files
+>>>>>>> 28a3eb7 (add team logic)
  */
 async function getListOfFilesToReplicate(octokit, commitId, owner, repo, patternsToIgnore, patternsToInclude, triggerEventName) {
   let filesToCheckForReplication;
@@ -15634,9 +15700,9 @@ async function getListOfFilesToReplicate(octokit, commitId, owner, repo, pattern
 
 /**
  * Get a list of all files recursively in file path
- * 
- * @param {String} filepath 
- * 
+ *
+ * @param {String} filepath
+ *
  * @returns {Array<String>} list of filepaths in path directory
  */
 async function getFilesListRecursively(filepath) {
@@ -15658,7 +15724,7 @@ async function getFilesListRecursively(filepath) {
 
 /**
  * Get a list of files to replicate
- * 
+ *
  * @param  {Array} filesToCheckForReplication list of all paths that are suppose to be replicated
  * @param  {String} filesToIgnore Comma-separated list of file paths or directories to ignore
  * @param  {String} patternsToInclude Comma-separated list of file paths or directories to include
@@ -15672,7 +15738,7 @@ function getFilteredFilesList(filesToCheckForReplication, filesToIgnore, pattern
 
 /**
  * Get list of files that should be replicated because they are supposed to be ignored, or because they should not be ignored
- * 
+ *
  * @param  {Array} filesToFilter list of all paths that are suppose to be replicated
  * @param  {String} patterns Comma-separated list of file paths or directories
  * @param  {Boolean} ignore true means files that matching patters should be filtered out, false means that only matching patterns should stay
@@ -15697,14 +15763,14 @@ function filterOutFiles(filesToFilter, patterns, ignore) {
 
 /**
  * Assemble a list of repositories that should be ignored.
- * 
+ *
  * @param  {String} repo The current repository.
  * @param  {Array} reposList All the repositories.
  * @param  {String} inputs.reposToIgnore A comma separated list of repositories to ignore.
  * @param  {String} inputs.topicsToInclude A comma separated list of topics to include.
  * @param  {Boolean} inputs.excludePrivate Exclude private repositories.
  * @param  {Boolean} inputs.excludeForked Exclude forked repositories.
- * 
+ *
  * @returns  {Array}
  */
 function getListOfReposToIgnore(repo, reposList, inputs) {
@@ -15819,9 +15885,9 @@ function parseCommaList(list) {
 }
 
 /**
- * Create a branch name. 
+ * Create a branch name.
  * If commitId is not provided then it means action was not triggered by push and name must have some generated number and indicate manual run
- * 
+ *
  * @param  {String} commitId id of commit that should be added to branch name for better debugging of changes
  * @param  {String} branchName name of the branch that new branch will be cut from
 * @returns  {String}
@@ -15878,7 +15944,7 @@ function filterOutMissingBranches(branchesRequested, branchesExisting, defaultBr
 
 /**
  * Creates a url with authentication token in it
- * 
+ *
  * @param  {String} token access token to GitHub
  * @param  {String} url repo URL
  * @returns  {String}
@@ -15890,7 +15956,7 @@ function getAuthanticatedUrl(token, url) {
 
 /**
  * Checking if repo is initialized cause if it isn't we need to ignore it
- * 
+ *
  * @param  {Array<Object>} branches list of all local branches with detail info about them
  * @param  {String} defaultBranch name of default branch that is always set even if repo not initialized
  * @returns  {Boolean}
@@ -15906,7 +15972,7 @@ function isInitialized(branches, defaultBranch) {
 /**
  * Getting list of topics that should be included if topics_to_include is set.
  * Further on we will get a list of repositories that do not belong to any of the specified topics.
- * 
+ *
  * @param  {String} topicsToInclude Comma separated list of topics to include.
  * @param  {Array} reposList All the repositories.
  * @returns {Array} List of all repositories to exclude.
@@ -15923,7 +15989,7 @@ function ignoredByTopics(topicsToInclude, reposList) {
 
 /**
  * Returns a list of archived repositories.
- * 
+ *
  * @param  {Array} reposList All the repositories.
  * @returns {Array}
  */
@@ -15935,7 +16001,7 @@ function archivedRepositories(reposList) {
 
 /**
  * Returns a list of private repositories.
- * 
+ *
  * @param  {Array} reposList All the repositories.
  * @returns {Array}
  */
@@ -15947,7 +16013,7 @@ function privateRepositories(reposList) {
 
 /**
  * Returns a list of forked repositories.
- * 
+ *
  * @param  {Array} reposList All the repositories.
  * @returns {Array}
  */
@@ -15957,6 +16023,7 @@ function forkedRepositories(reposList) {
   }).map(reposList => reposList.name);
 }
 
+<<<<<<< HEAD
 /**
  * Returns a list of files that were removed or not
  * 
@@ -15969,6 +16036,8 @@ function getFiles(filesList, removed) {
     .filter(fileObj => removed ? fileObj.status === 'removed' : fileObj.status !== 'removed')
     .map(nonRemovedFile => nonRemovedFile.filename);
 }
+=======
+>>>>>>> 28a3eb7 (add team logic)
 
 /***/ }),
 
