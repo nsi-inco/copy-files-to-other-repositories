@@ -1967,11 +1967,7 @@ async function getBranchesRemote(octokit, owner, repo) {
   core.debug('DEBUG: Full response about branches');
   core.debug(JSON.stringify(allBranches, null, 2));
 
-<<<<<<< HEAD
   const branchesList = allBranches.map((branch) => {
-=======
-  const branchesList = response.data.map((branch) => {
->>>>>>> 28a3eb7 (add team logic)
     return {
       name: branch.name,
     };
@@ -2054,15 +2050,7 @@ async function getReposList(octokit, owner, team) {
       per_page: 100
     });
   }
-<<<<<<< HEAD
-
   const reposList = response.map((repo) => {
-=======
-  core.debug("here")
-
-  const reposList = response.map((repo) => {
-    core.info(repo.name)
->>>>>>> 28a3eb7 (add team logic)
     return {
       name: repo.name,
       url: repo.html_url,
@@ -14325,11 +14313,8 @@ async function run() {
     const commitMessage = core.getInput('commit_message');
     const branches = core.getInput('branches');
     const destination = core.getInput('destination');
-<<<<<<< HEAD
     const customBranchName = core.getInput('bot_branch_name');
-=======
     const team = core.getInput('team');
->>>>>>> 28a3eb7 (add team logic)
     const repoNameManual = eventPayload.inputs && eventPayload.inputs.repo_name;
 
     const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
@@ -14344,21 +14329,12 @@ async function run() {
     //TODO for now this action is hardcoded to always get commit id of the first commit on the list
     const commitId = triggerEventName === 'push' ? eventPayload.commits[0].id : '';
 
-<<<<<<< HEAD
     if (patternsToRemove && patternsToInclude) {
       core.setFailed('Fields patterns_to_include and patterns_to_remove are mutually exclusive. If you want to remove files from repos then do not use patterns_to_include.');
-=======
-    /*
-     * 1. Getting list of files that must be replicated in other repos by this action
-     */
-    const filesToReplicate = await getListOfFilesToReplicate(myOctokit, commitId, owner, repo, patternsToIgnore, patternsToInclude, triggerEventName);
-    //if no files need replication, we just need to stop the workflow from further execution
-    if (!filesToReplicate.length)
->>>>>>> 28a3eb7 (add team logic)
       return;
     }
 
-    if (patternsToRemove && destination) 
+    if (patternsToRemove && destination)
       core.warning('The destination field will be ignored as it doesn\'t make sense when removal is expected and patterns_to_remove field is used');
 
     /*
@@ -14373,9 +14349,9 @@ async function run() {
       filesToReplicate = filesToCheckForReplication.filesForReplication;
       filesToRemove = filesToCheckForReplication.filesForRemoval;
       //if no files need replication, we just need to stop the workflow from further execution
-      if (!filesToReplicate.length && !filesToRemove.length) 
+      if (!filesToReplicate.length && !filesToRemove.length)
         return;
-    } 
+    }
     //filesForReplication
     //filesThatNeedToBeRemoved
 
@@ -14413,15 +14389,9 @@ async function run() {
           /*
            * 4a. Creating folder where repo will be cloned and initializing git client
            */
-<<<<<<< HEAD
-          const dir = path.join(process.cwd(), './clones', `${repo.name  }-${ Math.random().toString(36).substring(7)}`);
-          await mkdir(dir, {recursive: true});
-          const git = simpleGit({baseDir: dir});
-=======
-          const dir = path.join(process.cwd(), './clones', repo.name);
+          const dir = path.join(process.cwd(), './clones', `${repo.name}-${Math.random().toString(36).substring(7)}`);
           await mkdir(dir, { recursive: true });
           const git = simpleGit({ baseDir: dir });
->>>>>>> 28a3eb7 (add team logic)
 
           /*
            * 4b. Cloning and verification of the repo before replication
@@ -14436,13 +14406,8 @@ async function run() {
            * 4c. Checking what branches should this action operate on.
            *     Should it be just default one or the ones provided by the user
            */
-<<<<<<< HEAD
-          const branchesToOperateOn = await getBranchesList(myOctokit, owner, repo.name, branches, defaultBranch); 
-          if (!branchesToOperateOn[0].length) {
-=======
           const branchesToOperateOn = await getBranchesList(myOctokit, owner, repo.name, branches, defaultBranch);
-          if (!branchesToOperateOn.length) {
->>>>>>> 28a3eb7 (add team logic)
+          if (!branchesToOperateOn[0].length) {
             core.info('Repo has no branches that the action could operate on');
             continue;
           }
@@ -14460,7 +14425,6 @@ async function run() {
             /*
              * 4db. Creating new branch in cloned repo
              */
-<<<<<<< HEAD
             const newBranchName = customBranchName || getBranchName(commitId, branchName);
             const wasBranchThereAlready = branchesToOperateOn[1].some(branch => branch.name === newBranchName);
             core.debug(`DEBUG: was branch ${newBranchName} there already in the repository? - ${wasBranchThereAlready}`);
@@ -14475,30 +14439,19 @@ async function run() {
              * 4dc. Files replication/update or deletion
              * it is pretty clear that if there is nothing to replicate, then there definitely is something to remove
              * it is not possible that both ifs are invoked in the same run
-             */         
+             */
             if (filesToReplicate) await copyChangedFiles(filesToReplicate, dir, destination);
             if (filesToRemove) await removeFiles(filesToRemove, dir, { destination });
             if (!filesToReplicate) await removeFiles(patternsToRemove, dir, { patternsToIgnore });
-                  
-=======
-            // const newBranchName = getBranchName(commitId, branchName);
-            // await createBranch(newBranchName, git);
 
-            /*
-             * 4dc. Replicating files
-             */
-            await copyChangedFiles(filesToReplicate, dir, destination);
-
->>>>>>> 28a3eb7 (add team logic)
             //pushing and creating PR only if there are changes detected locally
             if (await areFilesChanged(git)) {
               /*
                * 4ed. Pushing files to custom branch
                */
-              await push(branchName, commitMessage, committerUsername, committerEmail, git);
+              await push(newBranchName, commitMessage, committerUsername, committerEmail, git);
 
               /*
-<<<<<<< HEAD
                * 4fe. Opening a PR. Doing in try/catch as it is not always failing because of timeouts, maybe branch already has a PR
                * we need to try to create a PR cause there can be branch but someone closed PR, so branch is there but PR not
                */
@@ -14507,31 +14460,18 @@ async function run() {
                 pullRequestUrl = await createPr(myOctokit, newBranchName, repo.id, commitMessage, branchName);
               } catch (error) {
                 if (wasBranchThereAlready)
-                  core.info(`PR creation for ${repo.name} failed as the branch was there already. Insted only push was performed to existing ${newBranchName} branch`, error);
+                  core.info(`PR creation for ${repo.name} failed as the branch was there already. Instead only push was performed to existing ${newBranchName} branch`, error);
               }
 
               core.endGroup();
-          
+
               if (pullRequestUrl) {
                 core.info(`Workflow finished with success and PR for ${repo.name} is created -> ${pullRequestUrl}`);
               } else if (!pullRequestUrl && wasBranchThereAlready) {
-                core.info(`Workflow finished without PR creation for ${repo.name}. Insted push was performed to existing ${newBranchName} branch`);
+                core.info(`Workflow finished without PR creation for ${repo.name}. Instead push was performed to existing ${newBranchName} branch`);
               } else {
                 core.info(`Unable to create a PR because of timeouts. Create PR manually from the branch ${newBranchName} that was already created in the upstream`);
               }
-=======
-               * 4fe. Opening a PR
-               */
-              // const pullRequestUrl = await createPr(myOctokit, newBranchName, repo.id, commitMessage, branchName);
-
-              core.endGroup();
-
-              // if (pullRequestUrl) {
-              //   core.info(`Workflow finished with success and PR for ${repo.name} is created -> ${pullRequestUrl}`);
-              // } else {
-              //   core.info(`Unable to create a PR because of timeouts. Create PR manually from the branch ${newBranchName} that was already created in the upstream`);
-              // }
->>>>>>> 28a3eb7 (add team logic)
             } else {
               core.endGroup();
               core.info('Finished with success. No commit was created as no changes were detected');
@@ -15653,13 +15593,9 @@ module.exports = { copyChangedFiles, parseCommaList, getListOfReposToIgnore, get
  * @param  {String} patternsToIgnore comma-separated list of file paths or directories that should be ignored
  * @param  {String} patternsToInclude comma-separated list of file paths or directories that should be replicated
  * @param  {String} triggerEventName name of the event that triggered the workflow
-<<<<<<< HEAD
- * 
- * @returns {Object<Array<String>>} list of filepaths of modified files
-=======
  *
- * @returns {Array<String>} list of filepaths of modified files
->>>>>>> 28a3eb7 (add team logic)
+ * @returns {Object<Array<String>>} list of filepaths of modified files
+ *
  */
 async function getListOfFilesToReplicate(octokit, commitId, owner, repo, patternsToIgnore, patternsToInclude, triggerEventName) {
   let filesToCheckForReplication;
@@ -15683,7 +15619,7 @@ async function getListOfFilesToReplicate(octokit, commitId, owner, repo, pattern
     filesToCheckForRemoval = [];
     core.debug(`DEBUG: list of files from the repo is ${filesToCheckForReplication}`);
   }
-  
+
   const filesForRemoval = getFilteredFilesList(filesToCheckForRemoval, patternsToIgnore, patternsToInclude);
   const filesForReplication = getFilteredFilesList(filesToCheckForReplication, patternsToIgnore, patternsToInclude);
 
@@ -15855,7 +15791,7 @@ async function removeFiles(toRemove, root, { patternsToIgnore, destination }) {
   if (isListString) {
     const filesToCheckForRemoval = (await getFilesListRecursively(root)).map(filepath => path.relative(root, filepath));
     filesForRemoval = getFilteredFilesList(filesToCheckForRemoval, patternsToIgnore, toRemove);
-  
+
     core.debug(`DEBUG: Provided patterns ${toRemove} relate to the following files: ${filesForRemoval}`);
   } else {
     filesForRemoval = toRemove;
@@ -16023,10 +15959,9 @@ function forkedRepositories(reposList) {
   }).map(reposList => reposList.name);
 }
 
-<<<<<<< HEAD
 /**
  * Returns a list of files that were removed or not
- * 
+ *
  * @param  {Array} filesList All the files objects.
  * @param  {Boolean} removed should return removed or not removed
  * @returns {Array}
@@ -16036,8 +15971,7 @@ function getFiles(filesList, removed) {
     .filter(fileObj => removed ? fileObj.status === 'removed' : fileObj.status !== 'removed')
     .map(nonRemovedFile => nonRemovedFile.filename);
 }
-=======
->>>>>>> 28a3eb7 (add team logic)
+
 
 /***/ }),
 
