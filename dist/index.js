@@ -14390,8 +14390,8 @@ async function run() {
             /*
              * 4db. Creating new branch in cloned repo
              */
-            // const newBranchName = getBranchName(commitId, branchName);
-            // await createBranch(newBranchName, git);
+            const newBranchName = getBranchName(commitId, branchName);
+            await createBranch(newBranchName, git);
 
             /*
              * 4dc. Replicating files
@@ -14403,20 +14403,20 @@ async function run() {
               /*
                * 4ed. Pushing files to custom branch
                */
-              await push(branchName, commitMessage, committerUsername, committerEmail, git);
+              await push(newBranchName, commitMessage, committerUsername, committerEmail, git);
 
               /*
                * 4fe. Opening a PR
                */
-              // const pullRequestUrl = await createPr(myOctokit, newBranchName, repo.id, commitMessage, branchName);
+              const pullRequestUrl = await createPr(myOctokit, newBranchName, repo.id, commitMessage, branchName);
 
               core.endGroup();
 
-              // if (pullRequestUrl) {
-              //   core.info(`Workflow finished with success and PR for ${repo.name} is created -> ${pullRequestUrl}`);
-              // } else {
-              //   core.info(`Unable to create a PR because of timeouts. Create PR manually from the branch ${newBranchName} that was already created in the upstream`);
-              // }
+              if (pullRequestUrl) {
+                core.info(`Workflow finished with success and PR for ${repo.name} is created -> ${pullRequestUrl}`);
+              } else {
+                core.info(`Unable to create a PR because of timeouts. Create PR manually from the branch ${newBranchName} that was already created in the upstream`);
+              }
             } else {
               core.endGroup();
               core.info('Finished with success. No commit was created as no changes were detected');
