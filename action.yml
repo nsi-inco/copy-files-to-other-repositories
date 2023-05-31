@@ -81,11 +81,7 @@ inputs:
     required: false
   team:
     description: >
-      Team inside organisation to run againstu
-    required: false
-  team:
-    description: >
-      Team inside organisation to run againstu
+      Team inside organisation to run against
     required: false
 runs:
   using: node16
